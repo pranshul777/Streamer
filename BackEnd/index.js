@@ -2,6 +2,7 @@
 const express = require('express');
 require('dotenv').config();
 const path = require('path');
+const cors = require('cors')
 const cookieParser  = require('cookie-parser');
 
 // saved modules
@@ -15,6 +16,7 @@ const postRoute = require('./routes/post.route.js');
 const app = express();
 
 //downloaded or built in middlwares
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 app.use(cookieParser ());
@@ -26,7 +28,7 @@ app.use(cookieParser ());
 
 //temp : full-stack
 app.use(express.static(path.resolve(__dirname, '../FrontEnd/dist')));
-
+app.use(express.static(path.resolve(__dirname, '../FrontEnd/dist/assets')));
 app.get('/', (req, res) => {
     res.status(200).sendFile(path.resolve(__dirname, '../FrontEnd/dist/index.html'));
 });

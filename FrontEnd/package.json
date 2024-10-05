@@ -1,6 +1,7 @@
 {
-  "name": "frontend",
+  "name": "streamer-frontend",
   "version": "0.0.0",
+  "description": "its a video sharing and streaming platform",
   "type": "module",
   "scripts": {
     "dev": "vite",

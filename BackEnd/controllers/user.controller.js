@@ -30,8 +30,8 @@ const getUserData = AsyncWrapper(async (req,res,next)=>{
 
 const registerUser = AsyncWrapper(async (req,res,next)=>{
     // fetch data
-    const {username,password,email,fullname} = req.body;
-    if(!username || !password || !email || !fullname){
+    const {username,password,email,firstname, lastname} = req.body;
+    if(!username || !password || !email || !firstname || !lastname){
         return next(unprocessableContent());
     }
 
@@ -55,7 +55,7 @@ const registerUser = AsyncWrapper(async (req,res,next)=>{
     }
     
     // create user
-    const createdUser =await user.create({username,password,email,fullname});
+    const createdUser =await user.create({username,password,email,firstname,lastname});
     if(!createdUser){
         return next(customApiError(500,"not able to create a user"));
     }
