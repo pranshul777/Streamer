@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Register = () => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -38,10 +41,11 @@ const Register = () => {
       });
 
       const data = await response.json();
-      console.log(data);
 
       if (data?.status=="success") { //improvised
         alert('User registered successfully!');
+        dispatch(data.data);
+        navigate("/");
       } else {
         alert('Registration failed');
       }

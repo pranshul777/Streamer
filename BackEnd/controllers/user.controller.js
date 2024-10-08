@@ -7,20 +7,16 @@ const playlist = require('../models/playlist.model.js');
 const comment = require('../models/comment.model.js');
 const mongoose = require('mongoose');
 const jwt = require("jsonwebtoken");
-const {fileUploader,deleteImage} = require('../utils/Cloudinary.js');
+const {imageUploader,deleteImage} = require('../utils/Cloudinary.js');
 
 const getUserData = AsyncWrapper(async (req,res,next)=>{
-    const { id } = req.params;
+    const  id  = req.user;
     
     if(!id){
         return next(badRequest());
     }
-    // Validate if id is a valid ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        return next(customApiError(400, "Invalid user ID"));
-    }
     
-    const foundUser = await user.findById(id).select("-password -watchHistory -subscribedTo -subscribers -videos -posts");
+    const foundUser = await user.findById(id).select("-password -videos -posts -refreshToken -playlists");
     if(!foundUser){
         return next(notAvailable());
     }
@@ -28,8 +24,29 @@ const getUserData = AsyncWrapper(async (req,res,next)=>{
     res.status(200).json({"status":"success","data":foundUser});
 })
 
+const getUserData2 = AsyncWrapper(async (req,res,next)=>{
+    const { id } = req.params;
+    if(!id){
+        return next(badRequest());
+    }
+    
+    // Validate if id is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return next(customApiError(400, "Invalid user ID"));
+    }
+    
+    const foundUser = await user.findById(id).select("-password -watchHistory -playlists -refreshToken -subscribedTo -subscribers -videos -posts");
+    if(!foundUser){
+        return next(notAvailable());
+    }
+    
+    const subscribers = await foundUser.subscribersCount();
+    res.status(200).json({"status":"success","data":{...foundUser._doc, subscribers}});
+});
+
 const registerUser = AsyncWrapper(async (req,res,next)=>{
     // fetch data
+    console.log("register");
     const {username,password,email,firstname, lastname} = req.body;
     if(!username || !password || !email || !firstname || !lastname){
         return next(unprocessableContent());
@@ -46,6 +63,7 @@ const registerUser = AsyncWrapper(async (req,res,next)=>{
         return next(customApiError(403 ,"Password is not correct"));
     }
     
+    console.log("done validation");
     //if user exists
     const existedUser = await user.findOne({
         $or : [{email},{username}]
@@ -54,12 +72,14 @@ const registerUser = AsyncWrapper(async (req,res,next)=>{
         return next(forbidden());
     }
     
+    console.log("no existing user");
     // create user
-    const createdUser =await user.create({username,password,email,firstname,lastname});
+    const createdUser =await user.create({username,password,email,firstname,lastname,watchHistory : [], playlists : [], subscribedTo : [], subscribers : [], videos : [], posts : []});
     if(!createdUser){
         return next(customApiError(500,"not able to create a user"));
     }
-
+    
+    console.log("user created");
     // generate tokens
     const accessToken =await createdUser.generateAccessToken();
     const refreshToken =await  createdUser.generateRefreshToken();
@@ -67,12 +87,15 @@ const registerUser = AsyncWrapper(async (req,res,next)=>{
     // setting refreshtoken in user cookie
     createdUser.refreshToken=refreshToken;
     createdUser.save({validateBeforeSave:false});
-
+    
+    console.log("refresh token done");
     // get user without password and refresh token
-    const foundUser = await user.findById(createdUser._id).select("-password -refreshToken");
+    const foundUser = await user.findById(createdUser._id).select("-password -videos -posts -refreshToken -playlists");
     if(!foundUser){
         return next(customApiError(500,"user is created but server is not able to retrieve it."));
     }
+    
+    console.log("user fetched");
 
     // store access refresh token in the cookie
     //set cookie
@@ -84,7 +107,8 @@ const registerUser = AsyncWrapper(async (req,res,next)=>{
         httpOnly: true,
         maxAge: 60 * 60 * 1000 // 1 hour
     })
-
+    
+    console.log("cookie set");
     // send response 
     res
     .status(201)
@@ -97,7 +121,7 @@ const userLogin = AsyncWrapper(async (req, res, next) => {
     const { username, password, email } = req.body;
 
     // Check if all fields are present
-    if (!username || !email || !password) {
+    if (!(username || email) || !password) {
         return next(unprocessableContent());
     }
 
@@ -136,7 +160,7 @@ const userLogin = AsyncWrapper(async (req, res, next) => {
     await existedUser.save({ validateBeforeSave: false });
 
     // Get user details excluding password and refreshToken
-    const resultUser = await user.findById(existedUser._id).select("-refreshToken -password");
+    const resultUser = await user.findById(existedUser._id).select("-password -videos -posts -refreshToken -playlists");
     if (!resultUser) {
         return next(customApiError(500, "User logged in, but the server couldn't retrieve it"));
     }
@@ -205,8 +229,7 @@ const uploadAvatar = AsyncWrapper(async (req,res,next)=>{
     if(URL){
         await deleteImage(publicID);
     }
-    // console.log(req.file);
-    const {url,public_id} = await fileUploader(req.file.path,next);
+    const {url,public_id} = await imageUploader(req.file.path,next);
     if(!url){
         // console.log(cloudinaryUrl);
         return next(customApiError(500,"file URL can't be recieved"));
@@ -228,7 +251,7 @@ const uploadCover = AsyncWrapper(async (req,res,next)=>{
         await deleteImage(publicID);
     }
     // console.log(req.file);
-    const {url,public_id} = await fileUploader(req.file.path,next);
+    const {url,public_id} = await imageUploader(req.file.path,next);
     if(!url){
         // console.log(cloudinaryUrl);
         return next(customApiError(500,"file URL can't be recieved"));
@@ -407,4 +430,4 @@ const getUserPosts = AsyncWrapper(async (req,res,next)=>{
     res.status(200).json({"status":"success","data":foundUser});
 })
 
-module.exports={getUserData,registerUser,userLogin,userUpdate,uploadAvatar,changePassword,userLogout,refreshAccessToken,uploadCover,subscribe,unsubscribe,getUserPosts,getUserVideos};
+module.exports={getUserData,registerUser,userLogin,userUpdate,uploadAvatar,changePassword,userLogout,refreshAccessToken,uploadCover,subscribe,unsubscribe,getUserPosts,getUserVideos,getUserData2};

@@ -7,10 +7,10 @@ const Header = () => {
     <div className='w-full h-14 bg-white flex justify-between items-center px-4 py-1 shadow-lg'>
 
       {/* Logo Section */}
-      <div className='w-[10%] flex justify-start items-center'>
+      <Link to={"/"} ><div className='w-[10%] flex justify-start items-center'>
         <img className='w-14 rounded-xl' src="src\assets\streamer logo.jpg" alt="logo" />
         <span className='font-bold text-xl ml-2'>Streamer</span>
-      </div>
+      </div></Link>
 
       {/* Search Bar */}
       <div className='w-[60%]'>
@@ -21,9 +21,9 @@ const Header = () => {
       <div className='w-[15%] flex justify-between items-center'>
         
         {/* Add New (for Uploading) */}
-        <div className='cursor-pointer p-2 hover:bg-gray-200 rounded-full'>
+        <Link to={"uploadvideo"} ><div className='cursor-pointer p-2 hover:bg-gray-200 rounded-full'>
           <img className='w-6 h-6' src="https://img.icons8.com/ios-filled/50/000000/plus-math.png" alt="Add New" />
-        </div>
+        </div></Link>
 
         {/* Notifications */}
         <div className='relative cursor-pointer p-2 hover:bg-gray-200 rounded-full'>

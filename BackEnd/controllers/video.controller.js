@@ -41,8 +41,13 @@ const uploadVideo = AsyncWrapper(async (req, res, next) => {
         title,
         description,
         owner: User._id,
+        ownerName : User.username,
+        ownerLogo : User.avatar?.url,
         thumbnail: { url: urlT, publicId: public_idT },
-        videoFile: { url: urlV, publicId: public_idV }
+        videoFile: { url: urlV, publicId: public_idV },
+        views : [],
+        likedBy : [],
+        comments : [],
     });
 
     if (!videoDoc) {
@@ -139,13 +144,13 @@ const editVideo = AsyncWrapper(async (req,res,next)=>{
 });
 
 const getAllVideo = AsyncWrapper(async (req,res,next)=>{
-    const Videos = await video.find().select("_id title thumbnail owner");
+    const Videos = await video.find().select("_id title thumbnail ownerName ownerLogo createdAt");
     if(!Videos){
         return next(customApiError(500,"Videos can't be recieved"));
     }
 
     if(Videos.length === 0){
-        return res.status(404).json({"status":"fail","message":"No videos found"});
+        return res.status(200).json({"status":"success","message":"novideos"});
     }
 
     // const views = await Videos.countViews();
@@ -154,23 +159,50 @@ const getAllVideo = AsyncWrapper(async (req,res,next)=>{
 
 });
 
-const watchVideo = AsyncWrapper(async (req,res,next)=>{
+const watchVideo = AsyncWrapper(async (req, res, next) => {
+    const id = req.params.id;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return next(badRequest());
+    }
+
+    const Video = await video.findById(id).select("-isPublished");
+    
+    if (!Video) {
+        return next(customApiError(500, "Video can't be received"));
+    }
+
+    const Likes = await Video.countLikes();
+    const Views = await Video.countViews();
+    const Comments = await Video.countComments();
+
+    if(req.user) Video.views.push(req.user);
+    await Video.save();
+
+    return res.status(200).json({
+        status: "success",
+        data: Video,
+        Likes,
+        Views,
+        Comments
+    });
+});
+
+
+const getComments = AsyncWrapper(async (req,res,next)=>{
     const id = req.params.id;
 
     if(!mongoose.Types.ObjectId.isValid(id)){
         return next(badRequest());
     }
 
-    const Video = await video.findById(id);
-    if(!Video){
-        return next(customApiError(500,"Video can't be recieved"));
+    const Comments = await comment.find({atVideo : id});
+    if(!Comments){
+        return next(customApiError(500,"Comments can't be recieved"));
     }
 
-    Video.views.push(req.user); 
-    await Video.save();
-
-    return res.status(200).json({"status":"success","data":Video});
-});
+    return res.status(200).json({"status":"success","data":Comments});
+})
 
 const likeVideo = AsyncWrapper(async (req,res,next)=>{
     const id = req.params.id;
@@ -180,14 +212,14 @@ const likeVideo = AsyncWrapper(async (req,res,next)=>{
     }
 
     
-    if (Video.likedBy.includes(req.user._id)) {
-        return next(badRequest());
+    if (Video.likedBy.includes(req.user)) {
+        return next(customApiError(404,"already liked the video"));
     }
 
     Video.likedBy.push(req.user);
     await Video.save();
 
-    return res.status(200).json({"status":"Success","Message":"video got liked"});
+    return res.status(200).json({"status":"Success","message":"video got liked"});
 })
 
 const unlikeVideo = AsyncWrapper(async (req,res,next)=>{
@@ -207,7 +239,7 @@ const unlikeVideo = AsyncWrapper(async (req,res,next)=>{
     return res.status(200).json({"status":"Success","Message":"video got liked"});
 })
 
-const makeComment = AsyncWrapper(async (req, res, next) => {
+const makeComment = AsyncWrapper(async (req, res, next) => {4
     const id = req.params.id;
 
     // Check if the provided post ID is valid
@@ -231,7 +263,8 @@ const makeComment = AsyncWrapper(async (req, res, next) => {
     const Comment = await comment.create({
         content,
         owner: req.user, 
-        atPost: id
+        atVideo: id,
+        ownername : req.username
     });
 
     // Add the comment to the post
@@ -244,4 +277,4 @@ const makeComment = AsyncWrapper(async (req, res, next) => {
     });
 });
 
-module.exports = {uploadVideo,deleteVideoo,changeThumbnail,editVideo,getAllVideo,watchVideo,likeVideo,unlikeVideo, makeComment};
+module.exports = {uploadVideo,deleteVideoo,changeThumbnail,editVideo,getAllVideo,watchVideo,likeVideo,unlikeVideo, makeComment, getComments};

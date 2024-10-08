@@ -1,10 +1,11 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const VideoCard = ({ video }) => {
-    const { thumbnail, title, views, uploadDate, channelName, channelLogo } = video;
+    const { _id : id, thumbnail, title, views, createdAt : uploadDate, ownerName : channelName,ownerLogo:  channelLogo } = video;
 
     return (
-        <div className="w-72 p-3 bg-white shadow-lg rounded-lg">
+        <Link to={"/watch/"+id}><div className="w-72 p-3 bg-white shadow-lg rounded-lg">
             {/* Video Thumbnail */}
             <img
                 src={thumbnail.url}
@@ -28,7 +29,7 @@ const VideoCard = ({ video }) => {
                     <p className="text-gray-500 text-xs">{views} views • {uploadDate}</p>
                 </div>
             </div>
-        </div>
+        </div></Link>
     );
 };
 

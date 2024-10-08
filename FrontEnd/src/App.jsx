@@ -7,7 +7,8 @@ import Error from './Pages/Error.jsx';
 const Login = lazy(()=> import("./Pages/Login.jsx"));
 const Profile = lazy(()=> import('./Pages/Profile.jsx'));
 const Register = lazy(()=> import('./Pages/Register.jsx'));
-
+const VideoUpload = lazy(()=> import('./Pages/VideoUpload.jsx'));
+const Video = lazy(() => import('./Pages/Video.jsx'));
 
 function Layout() {
     return (
@@ -31,16 +32,24 @@ const router = createBrowserRouter([
             {
                 path: "profile",
                 element: <Suspense fallback={<div>Loading...</div>}><Profile /></Suspense>
+            },,
+            {
+                path : "uploadvideo",
+                element: <Suspense fallback={<div>Loading...</div>}><VideoUpload /></Suspense>
             },
             {
-                path: "register",
-                element: <Suspense fallback={<div>Loading...</div>}><Register /></Suspense>
+                path : "watch/:id",
+                element: <Suspense fallback={<div>Loading...</div>}><Video /></Suspense>
             }
         ]
-    },
+    },,
     {
         path: "/login",
         element: <Suspense fallback={<div>Loading...</div>}><Login /></Suspense>
+    },
+    {
+        path: "/register",
+        element: <Suspense fallback={<div>Loading...</div>}><Register /></Suspense>
     }
 ]);
 

@@ -29,6 +29,13 @@ const videoSchema = mongoose.Schema({
             required: true
         }
     },
+    ownerName : {
+        type : String,
+        required : true
+    },
+    ownerLogo : {
+        type : String,
+    },
     owner: {
         type: mongoose.Types.ObjectId,
         ref: 'User',
@@ -37,27 +44,29 @@ const videoSchema = mongoose.Schema({
     isPublished: Boolean,
     views: [{
         type: mongoose.Types.ObjectId,
-        ref: 'User'
+        ref: 'User',
     }],
     likedBy: [{
         type: mongoose.Types.ObjectId,
-        ref: 'User'
+        ref: 'User',
     }],
     comments: [{
         type: mongoose.Types.ObjectId,
-        ref: 'Comment'
+        ref: 'Comment',
     }]
 }, { timestamps: true });
 
-videoSchema.methods.countLikes = async function (){
-    return await this.likedBy.length;
-},
-videoSchema.methods.countComments = async function (){
-    return await this.comments.length;
-},
-videoSchema.methods.countViews = async function(){
-    return await this.views.length;
-}
+// Schema Methods to count likes, views, and comments
+videoSchema.methods.countLikes = async function () {
+    return this.likedBy?.length || 0;
+};
 
+videoSchema.methods.countComments = async function () {
+    return this.comments?.length || 0;
+};
+
+videoSchema.methods.countViews = async function () {
+    return this.views?.length || 0;
+};
 
 module.exports = mongoose.model('Video', videoSchema);

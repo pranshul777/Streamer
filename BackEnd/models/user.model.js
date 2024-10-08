@@ -70,8 +70,8 @@ userSchema.methods.isSubscribedTo = async function (channelId) {
     return await this.subscribedTo.includes(channelId);
 };
 
-userSchema.methods.subscribersCount = async function (channelId) {
-    return await this.subscribers.length;
+userSchema.methods.subscribersCount = async function () {
+    return this.subscribers?.length || 0;
 };
 
 userSchema.methods.isPasswordCorrect = async function(password){

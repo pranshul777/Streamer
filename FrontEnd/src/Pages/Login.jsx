@@ -1,17 +1,50 @@
 import React, { useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { setUser } from '../Store/Slices/userSlice';
 
 const Login = () => {
   const [form, setForm] = useState({ email: '', password: '' });
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const {name,value} = e.target;
+    setForm({ ...form, [name]: value });
   };
 
-  const handleSubmit = (e) => { // important : understand it
+  const handleSubmit = async (e) => { // important : understand it
     e.preventDefault();
-    console.log("Login Form Submitted", form);
-    return <Navigate to="/profile" />
+    console.log("Login Form", form);
+    // Form validation (optional)
+    if (!form.email || !form.password ) {
+      alert("All fields are required!");
+      return;
+    }
+
+    // Submit form data (to be connected with backend API)
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/user/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(form),
+      });
+
+      const data = await response.json();
+
+      if (data?.status=="success") { //improvised
+        alert('User logged in successfully!');
+        dispatch(setUser(data.data));
+        console.log(data.token);
+        navigate("/");
+      } else {
+        alert('log in failed');
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
   };
 
   return (

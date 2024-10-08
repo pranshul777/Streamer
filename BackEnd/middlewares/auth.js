@@ -15,6 +15,7 @@ module.exports=async (req,res,next)=>{
         }
         const decoded = jwt.verify(token.split(" ")[1], process.env.ACCESSKEY);
         req.user = decoded.id;
+        req.username = decoded.username;
         console.log("authorised");
         next();
     }

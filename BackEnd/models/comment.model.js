@@ -21,6 +21,10 @@ const commentSchema = mongoose.Schema({
         type: mongoose.Types.ObjectId,
         ref: 'User',
         required: true
+    },
+    ownername : {
+        type : String,
+        required : true
     }
 }, { timestamps: true });
 
