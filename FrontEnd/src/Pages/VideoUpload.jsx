@@ -58,7 +58,7 @@ const VideoUpload = () => {
         method: 'POST',
         body: uploadData, // FormData handles files automatically
         headers: {
-          'Authorization': "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3MDU0ZmNkZWQyYWJlMjUyYjhmMzA2OSIsInVzZXJuYW1lIjoiQmV0YTQ1NjciLCJlbWFpbCI6ImphbmVfbWFuMjRAbWFpbC5jbyIsImlhdCI6MTcyODQxODE0MCwiZXhwIjoxNzI4NDIxNzQwfQ.oh9lAt0usIpbq0ZfpFrVdtgOJHk52qKGkBUVa2lL2vY", // Ensure token is valid
+          'Authorization': "Bearer " + user.token, // Ensure token is valid
         },
       });
 

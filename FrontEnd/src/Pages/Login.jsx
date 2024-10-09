@@ -15,7 +15,6 @@ const Login = () => {
 
   const handleSubmit = async (e) => { // important : understand it
     e.preventDefault();
-    console.log("Login Form", form);
     // Form validation (optional)
     if (!form.email || !form.password ) {
       alert("All fields are required!");
@@ -36,8 +35,7 @@ const Login = () => {
 
       if (data?.status=="success") { //improvised
         alert('User logged in successfully!');
-        dispatch(setUser(data.data));
-        console.log(data.token);
+        dispatch(setUser({...data.data,token : data.token}));
         navigate("/");
       } else {
         alert('log in failed');

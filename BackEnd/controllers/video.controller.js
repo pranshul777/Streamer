@@ -161,6 +161,10 @@ const getAllVideo = AsyncWrapper(async (req,res,next)=>{
 
 const watchVideo = AsyncWrapper(async (req, res, next) => {
     const id = req.params.id;
+    let viewer = req.query?.user;
+    if(viewer){
+        viewer =new mongoose.Types.ObjectId(viewer);
+    }
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return next(badRequest());
@@ -176,7 +180,8 @@ const watchVideo = AsyncWrapper(async (req, res, next) => {
     const Views = await Video.countViews();
     const Comments = await Video.countComments();
 
-    if(req.user) Video.views.push(req.user);
+    const already = await Video.alreadyViewed(viewer);
+    if(viewer && already) Video.views.push(viewer);
     await Video.save();
 
     return res.status(200).json({
@@ -211,8 +216,8 @@ const likeVideo = AsyncWrapper(async (req,res,next)=>{
         return next(customApiError(500,"Video not found"));
     }
 
-    
-    if (Video.likedBy.includes(req.user)) {
+    const already = await Video.alreadyLiked(req.user);
+    if (already) {
         return next(customApiError(404,"already liked the video"));
     }
 

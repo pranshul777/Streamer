@@ -44,7 +44,7 @@ const Register = () => {
 
       if (data?.status=="success") { //improvised
         alert('User registered successfully!');
-        dispatch(data.data);
+        dispatch(({...data.data,token : data.token}));
         navigate("/");
       } else {
         alert('Registration failed');

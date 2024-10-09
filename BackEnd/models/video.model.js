@@ -61,6 +61,14 @@ videoSchema.methods.countLikes = async function () {
     return this.likedBy?.length || 0;
 };
 
+videoSchema.methods.alreadyLiked = async function (liker) {
+    return this.likedBy.includes(liker)
+};
+
+videoSchema.methods.alreadyViewed = async function (viewer) {
+    return !this.views.includes(viewer);
+};
+
 videoSchema.methods.countComments = async function () {
     return this.comments?.length || 0;
 };

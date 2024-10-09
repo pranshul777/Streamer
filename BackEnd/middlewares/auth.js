@@ -4,7 +4,6 @@ const badRequest = require("../utils/errors/badRequest.error.js");
 
 module.exports=async (req,res,next)=>{
     try {
-        console.log(req.cookies);
         const token =  req.headers.authorization || req.cookies.accessToken;
 
         if (!token) {

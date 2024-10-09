@@ -7,8 +7,8 @@ const Header = () => {
     <div className='w-full h-14 bg-white flex justify-between items-center px-4 py-1 shadow-lg'>
 
       {/* Logo Section */}
-      <Link to={"/"} ><div className='w-[10%] flex justify-start items-center'>
-        <img className='w-14 rounded-xl' src="src\assets\streamer logo.jpg" alt="logo" />
+      <Link to={"/"} ><div className='max-w-48 flex justify-start items-center'>
+        <img className='w-[30%] rounded-xl' src="src\assets\streamer logo.jpg" alt="logo" />
         <span className='font-bold text-xl ml-2'>Streamer</span>
       </div></Link>
 

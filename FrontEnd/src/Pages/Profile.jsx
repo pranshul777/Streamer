@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate,Link } from 'react-router-dom';
 
 const Profile = () => {
   const navigate = useNavigate();
   const user = useSelector((store) => store.user);
   
   // If the user is not logged in, redirect to the login page
-  if (Object.keys(user).length === 0) {
-    alert("you've to be logged");
-    navigate("/login");
-  }
+  // if (Object.keys(user).length === 0) {
+  //   alert("you've to be logged");
+  //   navigate("/login");
+  // }
   
   useEffect(()=>{
     if (Object.keys(user).length === 0) {
@@ -77,32 +77,32 @@ const Profile = () => {
         </div>
 
         {/* Links to Other Pages */}
-        {/* <div className="mt-8 grid grid-cols-2 gap-6">
+        <div className="mt-8 grid grid-cols-2 gap-6">
           <Link
-            to="/watch-history"
+            to="/profile"
             className="w-full bg-blue-500 text-white py-2 px-4 rounded-md text-center"
           >
             Watch History
           </Link>
           <Link
-            to="/playlists"
+            to="/profile"
             className="w-full bg-blue-500 text-white py-2 px-4 rounded-md text-center"
           >
             Playlists
           </Link>
           <Link
-            to="/videos"
+            to="/profile"
             className="w-full bg-blue-500 text-white py-2 px-4 rounded-md text-center"
           >
             Your Videos
           </Link>
           <Link
-            to="/posts"
+            to="/profile"
             className="w-full bg-blue-500 text-white py-2 px-4 rounded-md text-center"
           >
             Your Posts
           </Link>
-        </div> */}
+        </div>
 
         {/* Switch Account Button */}
         <div className="mt-8">

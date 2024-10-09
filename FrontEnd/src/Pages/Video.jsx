@@ -1,25 +1,31 @@
 import React, { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
 
 const Video = () => {
+  const user = useSelector((store) => store.user);
+
   const videoId = useParams().id;
   const [videoData, setVideoData] = useState(null);  // To hold video data from backend
   const [likeCount, setLikeCount] = useState(0);     // To manage like count
   const [comments, setComments] = useState([]);      // To hold the comments
   const [newComment, setNewComment] = useState('');  // To manage the input of new comment
   const [commentCount, setCommentCount] = useState(0);
-    const [views,setViews] = useState(0);
+  const [views, setViews] = useState(0);             // To manage view count
 
   // Fetch video details and comments when the component mounts
   useEffect(() => {
     const fetchVideoData = async () => {
       try {
-        const videoResponse = await fetch(`http://localhost:8000/api/v1/video/watchvideo/${videoId}`);
+        let api ;
+        if (Object.keys(user).length === 0) api = `http://localhost:8000/api/v1/video/watchvideo/${videoId}`;
+        else api = `http://localhost:8000/api/v1/video/watchvideo/${videoId}?user=${user?._id}`;
+        const videoResponse = await fetch(api);
         const videoJson = await videoResponse.json();
         setVideoData(videoJson.data);
-        setLikeCount(videoJson.Likes); // Assuming likes are part of the video data
+        setLikeCount(videoJson.Likes);      // Assuming likes are part of the video data
         setCommentCount(videoJson.Comments);
-        setViews(videoJson.Views);
+        setViews(videoJson.Views);          // View count from video data
 
         const commentResponse = await fetch(`http://localhost:8000/api/v1/video/getComments/${videoId}`);
         const commentsJson = await commentResponse.json();
@@ -30,7 +36,7 @@ const Video = () => {
     };
 
     fetchVideoData();
-  }, [videoId]);
+  }, [videoId,user]);
 
   // Handle like button click
   const handleLike = async () => {
@@ -38,16 +44,16 @@ const Video = () => {
       const response = await fetch(`http://localhost:8000/api/v1/video/like/${videoId}`, {
         method: 'PATCH',
         headers: {
-          'Authorization': "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3MDU0ZDBjMDM1ZDY0MzBmMWU3NmE5OSIsInVzZXJuYW1lIjoiQWxwaGExMjMiLCJlbWFpbCI6ImFsYXguY29vbDEyM0BleGFtcGxlLmNvbSIsImlhdCI6MTcyODQxNTU5MSwiZXhwIjoxNzI4NDE5MTkxfQ.ytC0cHy37AJqivhMsrjqisgjWTNGl53c2Vjyq1UDG9Q", // Add the Bearer token
+          'Authorization': "Bearer " + user.token, // Add the Bearer token
           'Content-Type': 'application/json'  // Specify the content type if needed
         }
       });
 
       const jsonData = await response.json();
 
-      if (jsonData.status=="success") {
+      if (jsonData.status === "success") {
         alert(jsonData.message);
-        setLikeCount((prevCount) => prevCount + 1);
+        setLikeCount(likeCount + 1);
       } else {
         alert(jsonData.message);
       }
@@ -65,14 +71,14 @@ const Video = () => {
       const response = await fetch(`http://localhost:8000/api/v1/video/comment/${videoId}`, {
         method: 'PATCH',
         headers: {
-          'Authorization': "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3MDU0ZDBjMDM1ZDY0MzBmMWU3NmE5OSIsInVzZXJuYW1lIjoiQWxwaGExMjMiLCJlbWFpbCI6ImFsYXguY29vbDEyM0BleGFtcGxlLmNvbSIsImlhdCI6MTcyODQxNTU5MSwiZXhwIjoxNzI4NDE5MTkxfQ.ytC0cHy37AJqivhMsrjqisgjWTNGl53c2Vjyq1UDG9Q", // Add the Bearer token
+          'Authorization': "Bearer " + user.token, // Add the Bearer token
           'Content-Type': 'application/json'  // Specify the content type if needed
         },
         body: JSON.stringify({ content: newComment }),
       });
 
       const data = await response.json();
-      if (data.status=="success") {
+      if (data.status === "success") {
         alert(data.message);
         setComments([...comments, newComment]);
         setNewComment('');
@@ -98,6 +104,7 @@ const Video = () => {
             {/* Video Details */}
             <div className="mb-4">
               <h1 className="text-2xl font-bold">{videoData.title}</h1>
+              <p className="bg-gray-200 rounded-lg mt-2 p-5">{videoData.description}</p> {/* Added description */}
             </div>
 
             {/* Owner Information */}
@@ -117,41 +124,24 @@ const Video = () => {
               </div>
             </div>
 
-            {/* Likes Section */}
-            <div className="flex items-center mb-6">
+            {/* Likes and Views Section */}
+            <div className="flex items-center mb-6 space-x-4">
               <button
-                className="bg-blue-500 text-white px-4 py-2 rounded-md mr-3 hover:bg-blue-600"
+                className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
                 onClick={handleLike}
               >
                 Like
               </button>
               <span className="text-gray-600">{likeCount} Likes</span>
+              <span className="text-gray-600">{views} Views</span> {/* Added view count */}
             </div>
 
             {/* Comment Section */}
             <div>
               <h2 className="text-lg font-semibold mb-4">{commentCount} Comments</h2>
 
-              {/* Existing Comments */}
-              <div className="mb-4">
-                {comments.length > 0 ? (
-                  comments.map((comment, index) => (
-                    <div key={comment._id} className='bg-gray-200 p-3 mb-2 rounded-md shadow'>
-                      <div className=" text-sm text-slate-700">
-                        {comment.ownername}
-                      </div>
-                      <div className=" text-lg">
-                        {comment?.content}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500">No comments yet.</p>
-                )}
-              </div>
-
               {/* Add a Comment */}
-              <form onSubmit={handleCommentSubmit} className="flex flex-col space-y-2">
+              <form onSubmit={handleCommentSubmit} className="flex flex-col space-y-2 mb-5">
                 <textarea
                   className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   rows="3"
@@ -166,6 +156,25 @@ const Video = () => {
                   Post Comment
                 </button>
               </form>
+
+              {/* Existing Comments */}
+              <div className="mb-4">
+                {comments.length > 0 ? (
+                  comments.map((comment, index) => (
+                    <div key={comment._id} className='bg-gray-200 p-3 mb-2 rounded-md shadow'>
+                      <div className="text-sm text-slate-700">
+                        {comment.ownername}
+                      </div>
+                      <div className="text-lg">
+                        {comment?.content}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500">No comments yet.</p>
+                )}
+              </div>
+
             </div>
           </>
         )}
