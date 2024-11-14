@@ -47,7 +47,8 @@ const Login = () => {
 
   return (
     <div className="flex justify-center items-center h-screen bg-gray-100">
-      <div className="flex flex-col w-full max-w-md bg-white p-8 rounded-lg shadow-lg">
+      <div className="relative flex flex-col w-full max-w-md bg-white p-8 rounded-lg shadow-lg">
+        <span className='absolute top-5 right-8 text-sm text-blue-500 hover:text-blue-600 hover:cursor-pointer'><Link to={"/"}>Home</Link></span>
         <h2 className="text-2xl font-bold mb-6">Login</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

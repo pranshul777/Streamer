@@ -5,6 +5,9 @@ const path = require('path');
 const cors = require('cors')
 const cookieParser  = require('cookie-parser');
 
+const { createServer } = require('http');
+const messageServer = require('./ws/messageServer.js');
+
 // saved modules
 const connectDB = require('./config/connectDB.js');
 const errorHandler = require('./utils/ErrorHandler.js');
@@ -46,11 +49,15 @@ app.all('*',(req,res,next)=>{
 // error handler
 app.use(errorHandler);
 
+// server initialization : because of websocket
+const httpServer = createServer(app);
+messageServer(httpServer);
+
 // connection to database
 (async ()=>{
     try {
         await connectDB();
-        app.listen(process.env.PORT,()=>{
+        httpServer.listen(process.env.PORT,()=>{
             console.log("Serving at port : ",process.env.PORT);
         })
     } catch (error) {

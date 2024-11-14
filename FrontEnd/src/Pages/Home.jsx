@@ -21,7 +21,7 @@ const Home = () => {
       <div className="grid grid-cols-3 gap-6">
           {
             videos.map((video) =>{
-              return <VideoCard key={video.id} video={video}/>
+              return <VideoCard key={video._id} video={video}/>
             })
           }
         </div>

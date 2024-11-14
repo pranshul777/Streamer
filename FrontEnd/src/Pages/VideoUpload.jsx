@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 
@@ -6,11 +6,12 @@ const VideoUpload = () => {
   const navigate = useNavigate();
   const user = useSelector((store) => store.user);
 
-  // If the user is not logged in, redirect to the login page
-  if (Object.keys(user).length === 0) {
-    alert("You've to be logged in");
-    navigate("/login");
-  }
+  useEffect(()=>{
+    if (Object.keys(user).length === 0) {
+      alert("you've to be logged");
+      navigate("/login");
+    }
+  },[user]);
 
   const [formData, setFormData] = useState({
     title: '',

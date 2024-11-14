@@ -144,7 +144,7 @@ const editVideo = AsyncWrapper(async (req,res,next)=>{
 });
 
 const getAllVideo = AsyncWrapper(async (req,res,next)=>{
-    const Videos = await video.find().select("_id title thumbnail ownerName ownerLogo createdAt");
+    const Videos = await video.find().select("_id title thumbnail ownerName ownerLogo createdAt owner");
     if(!Videos){
         return next(customApiError(500,"Videos can't be recieved"));
     }
@@ -193,7 +193,6 @@ const watchVideo = AsyncWrapper(async (req, res, next) => {
     });
 });
 
-
 const getComments = AsyncWrapper(async (req,res,next)=>{
     const id = req.params.id;
 
@@ -210,7 +209,15 @@ const getComments = AsyncWrapper(async (req,res,next)=>{
 })
 
 const likeVideo = AsyncWrapper(async (req,res,next)=>{
+    if(!req.user){
+        return next(customApiError(500,"not logged"));
+    }
+
     const id = req.params.id;
+    if(!mongoose.Types.ObjectId.isValid(id)){
+        return next(unprocessableContent());
+    }
+
     const Video = await video.findById(id);
     if(!Video){
         return next(customApiError(500,"Video not found"));
@@ -224,24 +231,43 @@ const likeVideo = AsyncWrapper(async (req,res,next)=>{
     Video.likedBy.push(req.user);
     await Video.save();
 
-    return res.status(200).json({"status":"Success","message":"video got liked"});
+    return res.status(200).json({"status":"success","message":"video got liked"});
 })
 
 const unlikeVideo = AsyncWrapper(async (req,res,next)=>{
+    console.log("unliking");
+    if(!req.user){
+        return next(customApiError(500,"not logged"));
+    }
+
     const id = req.params.id;
+    if(!mongoose.Types.ObjectId.isValid(id)){
+        return next(unprocessableContent());
+    }
+
+    
+    console.log("got the user and video");
+
     const Video = await video.findById(id);
     if(!Video){
         return next(customApiError(500,"Video not found"));
     }
 
-    if (!Video.likedBy.includes(req.user._id)) {
+    
+    console.log("got the video");
+
+    const already = await Video.likedBy.includes(req.user);
+
+    console.log(already);
+
+    if (!already) {
         return next(badRequest());
     }
 
     Video.likedBy.pull(req.user);
     await Video.save();
-
-    return res.status(200).json({"status":"Success","Message":"video got liked"});
+    console.log("unliked");
+    return res.status(200).json({"status":"success","message":"video got unliked"});
 })
 
 const makeComment = AsyncWrapper(async (req, res, next) => {4
@@ -282,4 +308,19 @@ const makeComment = AsyncWrapper(async (req, res, next) => {4
     });
 });
 
-module.exports = {uploadVideo,deleteVideoo,changeThumbnail,editVideo,getAllVideo,watchVideo,likeVideo,unlikeVideo, makeComment, getComments};
+const getUserVideos = AsyncWrapper(async (req,res,next)=>{
+    const { id } = req.params;
+    
+    if(!id){
+        return next(badRequest());
+    }
+    // Validate if id is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return next(customApiError(400, "Invalid user ID"));
+    }
+    
+    const videos = await video.find({owner : id}).select("_id title thumbnail ownerName ownerLogo createdAt owner");
+    res.status(200).json({"status":"success","data":videos});
+})
+
+module.exports = {uploadVideo,deleteVideoo,changeThumbnail,editVideo,getAllVideo,watchVideo,likeVideo,unlikeVideo, makeComment, getComments, getUserVideos};

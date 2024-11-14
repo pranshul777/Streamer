@@ -6,15 +6,8 @@ const Profile = () => {
   const navigate = useNavigate();
   const user = useSelector((store) => store.user);
   
-  // If the user is not logged in, redirect to the login page
-  // if (Object.keys(user).length === 0) {
-  //   alert("you've to be logged");
-  //   navigate("/login");
-  // }
-  
   useEffect(()=>{
     if (Object.keys(user).length === 0) {
-      alert("you've to be logged");
       navigate("/login");
     }
   },[user]);

@@ -66,8 +66,12 @@ userSchema.pre("save", async function (next) {
     next();
 })
 
-userSchema.methods.isSubscribedTo = async function (channelId) {
-    return await this.subscribedTo.includes(channelId);
+userSchema.methods.isSubscribedTo = async function (channelID) {
+    return this.subscribedTo.includes(channelID);
+};
+
+userSchema.methods.isSubscriber = async function (userID) {
+    return this.subscribers.includes(userID);
 };
 
 userSchema.methods.subscribersCount = async function () {

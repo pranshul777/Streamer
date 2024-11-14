@@ -35,13 +35,13 @@ const getUserData2 = AsyncWrapper(async (req,res,next)=>{
         return next(customApiError(400, "Invalid user ID"));
     }
     
-    const foundUser = await user.findById(id).select("-password -watchHistory -playlists -refreshToken -subscribedTo -subscribers -videos -posts");
+    const foundUser = await user.findById(id).select("-password -watchHistory -playlists -refreshToken -subscribedTo -videos -posts");
     if(!foundUser){
         return next(notAvailable());
     }
     
-    const subscribers = await foundUser.subscribersCount();
-    res.status(200).json({"status":"success","data":{...foundUser._doc, subscribers}});
+    const Subscribers = await foundUser.subscribersCount();
+    res.status(200).json({"status":"success","data":{...foundUser._doc, Subscribers}});
 });
 
 const registerUser = AsyncWrapper(async (req,res,next)=>{
@@ -329,29 +329,36 @@ const refreshAccessToken = AsyncWrapper(async (req,res,next)=>{
 })
 
 const subscribe = AsyncWrapper(async (req,res,next)=>{
-    console.log("here");
-    if(req.user===req.params.id){
-        return next(badRequest());
-    }
-    const User = await user.findById(req.user);
-    if(!User){
-        return next(customApiError(500,"can't fetch user"));
+    console.log("subscribing here");
+
+    if(!req.user){
+        return next(customApiError(500,"not logged"));
     }
 
     const channel = req.params.id;
     if(!mongoose.Types.ObjectId.isValid(channel)){
         return next(unprocessableContent());
     }
+    
+    if(req.user == channel){
+        return res.status(200).json({"status":"success","message":"same account"});
+    }
 
+    const User = await user.findById(req.user);
+    if(!User){
+        return next(customApiError(500,"can't fetch user"));
+    }
 
     const Channel = await user.findById(channel);
     if(!Channel){
         return next(customApiError(500,"can't fetch Channel"));
     }
 
-    
-    if(User.isSubscribedTo(channel)){
-        return next(customApiError(400,"Already Subscribed"));
+    const flag = await User.isSubscribedTo(channel);
+
+    if(flag){
+        console.log("Already Subscribed");
+        return res.status(200).json({"status":"success","message":"already subscribed"});
     }
 
     Channel.subscribers.push(User._id);
@@ -360,18 +367,28 @@ const subscribe = AsyncWrapper(async (req,res,next)=>{
     User.subscribedTo.push(Channel._id);
     await User.save();
 
-    return res.status(200).json({"status":"sucsess","message":"subscribed successfully"});
+    return res.status(200).json({"status":"success","message":"subscribed successfully"});
 })
 
 const unsubscribe = AsyncWrapper(async (req,res,next)=>{
-    const User = await user.findById(req.user);
-    if(!User){
-        return next(customApiError(500,"can't fetch user"));
+    console.log("unsubscribing here");
+
+    if(!req.user){
+        return next(customApiError(500,"not logged"));
     }
 
     const channel = req.params.id;
     if(!mongoose.Types.ObjectId.isValid(channel)){
         return next(unprocessableContent());
+    }
+    
+    if(req.user == channel){
+        return res.status(200).json({"status":"success","message":"same account"});
+    }
+
+    const User = await user.findById(req.user);
+    if(!User){
+        return next(customApiError(500,"can't fetch user"));
     }
 
     const Channel = await user.findById(channel);
@@ -379,8 +396,11 @@ const unsubscribe = AsyncWrapper(async (req,res,next)=>{
         return next(customApiError(500,"can't fetch Channel"));
     }
 
-    if(!User.isSubscribedTo(channel)){
-        return next(customApiError(400,"Not a subscriber"));
+    const flag = await User.isSubscribedTo(channel);
+
+    if(!flag){
+        console.log("Already unsubscribed");
+        return res.status(200).json({"status":"success","message":"already not subscribed"});
     }
 
     Channel.subscribers.remove(User._id);
@@ -389,26 +409,7 @@ const unsubscribe = AsyncWrapper(async (req,res,next)=>{
     User.subscribedTo.remove(Channel._id);
     await User.save();
 
-    return res.status(200).json({"status":"sucsess","message":"unsubscribed successfully"});
-})
-
-const getUserVideos = AsyncWrapper(async (req,res,next)=>{
-    const { id } = req.params;
-    
-    if(!id){
-        return next(badRequest());
-    }
-    // Validate if id is a valid ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        return next(customApiError(400, "Invalid user ID"));
-    }
-    
-    const foundUser = await user.findById(id).select("videos");
-    if(!foundUser){
-        return next(notAvailable());
-    }
-
-    res.status(200).json({"status":"success","data":foundUser});
+    return res.status(200).json({"status":"success","message":"unsubscribed successfully"});
 })
 
 const getUserPosts = AsyncWrapper(async (req,res,next)=>{
@@ -430,4 +431,4 @@ const getUserPosts = AsyncWrapper(async (req,res,next)=>{
     res.status(200).json({"status":"success","data":foundUser});
 })
 
-module.exports={getUserData,registerUser,userLogin,userUpdate,uploadAvatar,changePassword,userLogout,refreshAccessToken,uploadCover,subscribe,unsubscribe,getUserPosts,getUserVideos,getUserData2};
+module.exports={getUserData,registerUser,userLogin,userUpdate,uploadAvatar,changePassword,userLogout,refreshAccessToken,uploadCover,subscribe,unsubscribe,getUserPosts,getUserData2};

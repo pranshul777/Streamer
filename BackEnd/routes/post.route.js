@@ -5,7 +5,6 @@ const verify = require("../middlewares/verifyPost.middleware.js");
 
 const {uploadPost, changeImage, deletePost, editPost, likePost, unlikePost, makeComment} = require('../controllers/post.controller.js');
 
-
 const router = express.Router();
 
 router.route("/uploadpost").post(

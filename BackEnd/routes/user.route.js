@@ -20,7 +20,6 @@ router.route("/changePassword").patch(auth,changePassword);
 router.route("/subscribe/:id").put(auth,subscribe);
 router.route("/unsubscribe/:id").put(auth,unsubscribe);
 
-router.route("/videos/:id").get(getUserVideos);
 router.route("/posts/:id").get(getUserPosts);
 
 module.exports = router;
