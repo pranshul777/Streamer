@@ -141,11 +141,11 @@ const Video = () => {
         {videoData && (
           <>
             <div className="mb-6">
-              <video className="w-full h-auto rounded-md" controls>
+              {/* <video className="w-full h-auto rounded-md" controls>
                 <source src={videoData.videoFile.url} type="video/mp4" />
                 Your browser does not support the video tag.
-              </video>
-              {/* <VideoPlayer videoUrl={videoData.videoFile.url}/> */}
+              </video> */}
+              <VideoPlayer videoUrl={videoData.videoFile.url}/>
             </div>
 
             {/* Video Details */}
