@@ -145,7 +145,7 @@ const Video = () => {
                 <source src={videoData.videoFile.url} type="video/mp4" />
                 Your browser does not support the video tag.
               </video> */}
-              <VideoPlayer videoUrl={videoData.videoFile.url}/>
+              <VideoPlayer videoUrl={videoData.videoFile}/>
             </div>
 
             {/* Video Details */}

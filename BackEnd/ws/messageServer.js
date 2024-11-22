@@ -1,7 +1,7 @@
 // messageServer.js
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
-const Message = require('../models/message.model');
+// const Message = require('../models/message.model');
 const { customApiError } = require('../utils/ApiError');
 const { unauthorised } = require('../utils/errors/error');
 

@@ -11,7 +11,8 @@ import {
 } from "react-icons/fa";
 
 const VideoPlayer = ({videoUrl}) => {
-  // const videoUrl = "https://res.cloudinary.com/dht0ihyfu/raw/upload/v1732043664/a04c0bbe-89bb-427b-9def-ff3db24de8ee/jcghn4w607jpphgyvffj.m3u8";
+  console.log(videoUrl);
+  // videoUrl = "https://res.cloudinary.com/dht0ihyfu/raw/upload/v1732043664/a04c0bbe-89bb-427b-9def-ff3db24de8ee/jcghn4w607jpphgyvffj.m3u8";
   const videoRef = useRef(null);
   const hlsInstance = useRef(null); // To store HLS.js instance
   const timelineRef = useRef(null);

@@ -10,14 +10,12 @@ const videoSchema = mongoose.Schema({
         required: true
     },
     videoFile: {
-        url : {
-            type: String,
-            required: true
-        },
-        publicId : {
-            type: String,
-            required: true
-        }
+        type: String,
+        required: true
+    },
+    folder : {
+        type: String,
+        required: true
     },
     thumbnail: {
         url : {

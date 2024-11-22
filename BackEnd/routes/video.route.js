@@ -2,7 +2,7 @@ const express = require('express');
 const auth = require('../middlewares/auth.js');
 const upload = require("../middlewares/multer.middleware.js");
 const verify = require("../middlewares/verifyVideo.middleware.js");
-
+const path = require('path');
 const {uploadVideo,changeThumbnail,deleteVideoo,editVideo, getAllVideo, watchVideo, likeVideo, unlikeVideo, makeComment, getComments, getUserVideos} = require('../controllers/video.controller.js');
 
 
@@ -20,7 +20,8 @@ router.route("/uploadvideo").post(
     ]), // Handle both 'video' and 'thumbnail' in one step
     (req, res, next) => {
         console.log("video and thumbnail done"); // req.files now contains both 'video' and 'thumbnail'
-        console.log(req.files)
+        console.log(req.files);
+        
         next();
     },
     uploadVideo

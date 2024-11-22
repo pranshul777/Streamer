@@ -7,12 +7,104 @@ const playlist = require('../models/playlist.model.js');
 const comment = require('../models/comment.model.js');
 const mongoose = require('mongoose');
 const jwt = require("jsonwebtoken");
+const path = require('path');
+const { v4 } = require("uuid");
+const { exec } = require("child_process");
+const fs = require("fs");
+
 const {
     imageUploader,
     videoUploader,
     deleteImage,
-    deleteVideo
+    deleteVideo,
+    rawUploader,
+    deleteRaw,
+    deleteFolder
 } = require('../utils/Cloudinary.js');
+
+
+
+// uploading segment files and manifest file on cloud
+async function uploadToCloud(folderPath, m3u8Path, folderId, next) {
+    console.log(folderPath, m3u8Path, folderId, next);
+    try {
+        const files = fs.readdirSync(folderPath);
+        const segmentUrls = [];
+      
+        for (const file of files) {
+            const filePath = path.join(folderPath, file);
+
+            if (file.endsWith('.ts')) {
+                try {
+                    const result = await videoUploader(filePath, next, folderId);
+                    segmentUrls.push({ segment: file, url: result });
+                } catch (error) {
+                    console.error(`Failed to upload segment: ${file}`, error);
+                    throw new Error(`Failed to upload segment: ${file}`);
+                }
+            }
+        }
+
+        let m3u8Content = await fs.promises.readFile(m3u8Path, 'utf-8');
+        segmentUrls.forEach(({ segment, url }) => {
+            console.log(segment, url);
+            m3u8Content = m3u8Content.replace(segment, url);
+        });
+
+        const updatedM3u8Path = path.join(folderPath, 'updated_index.m3u8');
+        await fs.promises.writeFile(updatedM3u8Path, m3u8Content);
+
+        const result = await rawUploader(updatedM3u8Path, next, folderId);
+        return result; // Manifest URL
+    } catch (error) {
+        console.log(error.message);
+        throw new Error('Failed to updated .m3u8');
+    }
+}
+// run ffmpeg commands seperately and returns stored cloud stored manifest file
+// Wrap exec in a Promise to use async/await properly
+function runExec(ffmpegCommand, videoPath, hlsPath, outputPath, folderId, next) {
+    return new Promise((resolve, reject) => {
+        exec(ffmpegCommand, async (error, stdout, stderr) => {
+            if (error) {
+                console.log(`exec error: ${error}`);
+                return reject(new Error("Video encoding failed."));
+            }
+
+            try {
+                console.log(`stdout: ${stdout}`);
+                console.log(`stderr: ${stderr}`);
+                console.log("File encoded, now uploading to cloud and updating .m3u8");
+
+                // Ensure `uploadToCloud` is awaited and pass folderId
+                const manifestUrl = await uploadToCloud(outputPath, hlsPath, folderId, next);
+                console.log("All segments uploaded to the cloud and .m3u8 updated");
+
+                // Clean up the local upload directory (use async method)
+                await fs.promises.rm(outputPath, { recursive: true, force: true });
+                console.log("Cleanup successful, upload complete.");
+
+                resolve(manifestUrl);
+            } catch (error) {
+                // Clean up even if there's an error
+                await fs.promises.rm(outputPath, { recursive: true, force: true });
+                console.error("Error during cloud upload or cleanup:", error.message);
+                reject(new Error('Failed to run exec'));
+            }
+        });
+    });
+}
+
+// Function to generate the master `.m3u8` content
+function generateMasterM3U8(url1, url2, url3) {
+    let masterContent = '#EXTM3U\n';
+    masterContent += `#EXT-X-STREAM-INF:BANDWIDTH=150000,RESOLUTION=256x144\n${url1}\n`;
+    masterContent += `#EXT-X-STREAM-INF:BANDWIDTH=1000000,RESOLUTION=1920x1080\n${url2}\n`;
+    masterContent += `#EXT-X-STREAM-INF:BANDWIDTH=2500000,RESOLUTION=1280x720\n${url3}\n`;
+    return masterContent;
+}
+
+
 
 const uploadVideo = AsyncWrapper(async (req, res, next) => {
     const User = await user.findById(req.user);
@@ -28,15 +120,96 @@ const uploadVideo = AsyncWrapper(async (req, res, next) => {
     if (!req.files?.thumbnail || !req.files?.video) {
         return next(customApiError(400, "Files are missing"));
     }
+    
+    // Generate unique folder ID
+    const folderId = v4();
+    const baseUploadDir = path.join(__dirname, '../uploads');
 
-    const { url: urlT, public_id: public_idT } = await imageUploader(req.files.thumbnail[0]?.path, next);
+    const { url: urlT, public_id: public_idT } = await imageUploader(req.files.thumbnail[0]?.path, next, folderId);
     if(!urlT){
         return next(customApiError(500, "Thumbnail URL couldn't be received"));
     }
-    const { url: urlV, public_id: public_idV } = await videoUploader(req.files.video[0]?.path, next);
-    if (!urlV) {
-        return next(customApiError(500, "Video URL couldn't be received"));
+
+    console.log("Video processing start\n\n");
+
+    if (!req.files.video[0]?.path) {
+        return res.status(401).json({ "status": "unsuccessful", "message": "file is missing" });
     }
+
+
+    const videoPath = req.files.video[0]?.path;
+    const outputPath = baseUploadDir;
+    const hlsPath = path.join(outputPath,"/masterindex.m3u8" );
+    const outputPath144p = path.join(outputPath,"/144p" );
+    const hlsPath144p = path.join(outputPath,"/index.m3u8" );
+    const outputPath480p = path.join(outputPath,"/480p" );
+    const hlsPath480p = path.join(outputPath,"/index.m3u8" );
+    const outputPath720p = path.join(outputPath,"/720p" );
+    const hlsPath720p = path.join(outputPath,"/index.m3u8" );
+    console.log("hlsPath", hlsPath);
+        
+    // Create directories if they don't exist
+    await fs.promises.mkdir(outputPath, { recursive: true });
+    await fs.promises.mkdir(outputPath144p, { recursive: true });
+    await fs.promises.mkdir(outputPath480p, { recursive: true });
+    await fs.promises.mkdir(outputPath720p, { recursive: true });
+
+
+    // FFmpeg commands for different video resolutions
+    const ffmpegCommand144p = `ffmpeg -i ${videoPath} -vf "scale=-2:144" -codec:v libx264 -b:v 300k -preset veryfast -codec:a aac -b:a 64k -hls_time 5 -hls_playlist_type vod -hls_segment_filename "${outputPath144p}/segment%03d.ts" -start_number 0 ${hlsPath144p}`;
+    const ffmpegCommand480p = `ffmpeg -i ${videoPath} -vf "scale=-2:480" -codec:v libx264 -b:v 1200k -preset veryfast -codec:a aac -b:a 128k -hls_time 5 -hls_playlist_type vod -hls_segment_filename "${outputPath480p}/segment%03d.ts" -start_number 0 ${hlsPath480p}`;
+    const ffmpegCommand720p = `ffmpeg -i ${videoPath} -vf "scale=-2:720" -codec:v libx264 -b:v 2500k -preset veryfast -codec:a aac -b:a 128k -hls_time 5 -hls_playlist_type vod -hls_segment_filename "${outputPath720p}/segment%03d.ts" -start_number 0 ${hlsPath720p}`;
+
+
+    console.log(hlsPath144p);
+    console.log(hlsPath480p);
+    console.log(hlsPath720p);
+
+
+    if (!hlsPath144p || !hlsPath480p || !hlsPath720p) {
+        throw new Error("HLS paths are not available");
+    }
+
+    console.log("Uploading of 144p...");
+    const manifest144p = await runExec(ffmpegCommand144p, videoPath, hlsPath144p, outputPath144p, folderId, next);
+    if (!manifest144p) {
+        throw new Error("144p manifest couldn't be created");
+    }
+    console.log("144p upload completed");
+
+    console.log("Uploading of 480p...");
+    const manifest480p = await runExec(ffmpegCommand480p, videoPath, hlsPath480p, outputPath480p, folderId, next);
+    if (!manifest480p) {
+        throw new Error("480p manifest couldn't be created");
+    }
+    console.log("480p upload completed");
+
+    console.log("Uploading of 720p...");
+    const manifest720p = await runExec(ffmpegCommand720p, videoPath, hlsPath720p, outputPath720p, folderId, next);
+    if (!manifest720p) {
+        throw new Error("720p manifest couldn't be created");
+    }
+    console.log("720p upload completed");
+
+    console.log(hlsPath144p);
+    console.log(hlsPath480p);
+    console.log(hlsPath720p);
+
+
+    if (!hlsPath144p || !hlsPath480p || !hlsPath720p) {
+        throw new Error("HLS paths are not available");
+    }
+
+    // Generate master M3U8 content
+    const masterContent = generateMasterM3U8(manifest144p, manifest480p, manifest720p);
+    console.log("Master content generated");
+
+    await fs.promises.writeFile(hlsPath, masterContent);
+    console.log("Master written successfully");
+
+    // Upload master M3U8 file
+    const masterUrl = await rawUploader(hlsPath, next, folderId);
+    console.log("Master URL saved successfully");
 
     const videoDoc = await video.create({
         title,
@@ -45,7 +218,8 @@ const uploadVideo = AsyncWrapper(async (req, res, next) => {
         ownerName : User.username,
         ownerLogo : User.avatar?.url,
         thumbnail: { url: urlT, publicId: public_idT },
-        videoFile: { url: urlV, publicId: public_idV },
+        videoFile: masterUrl,
+        folder: folderId,
         views : [],
         likedBy : [],
         comments : [],
@@ -62,7 +236,7 @@ const uploadVideo = AsyncWrapper(async (req, res, next) => {
         status: "success",
         message: "Video uploaded",
         "url of Thumbnail": urlT,
-        "url of Video": urlV
+        "url of Video": masterUrl
     });
 });
 
@@ -74,26 +248,24 @@ const deleteVideoo = AsyncWrapper(async (req, res, next) => {
 
     const videoId = req.params.id;
 
-    // Remove video reference from User
-    User.videos.pull(videoId);
-    await User.save();
-
     // Find the video by id
     const Video = await video.findById(videoId);
     if (!Video) {
         return next(customApiError(404, "Video not found"));
     }
+    
+    // Get the folder of video file
+    const folder = await Video.folder;
 
-    // Get the public_id of the video file for deletion from cloud storage
-    const public_id1 = Video.videoFile.publicId;
-    const public_id2 = Video.thumbnail.publicId;
+    // Delete Complete Folder from Cloudinary
+    await deleteFolder(folder, next);
 
     // Delete the video document from the database
     await video.findByIdAndDelete(videoId);
 
-    // Delete the video file from the cloud storage (e.g., Cloudinary)
-    await deleteVideo(public_id1);
-    await deleteImage(public_id2);
+    // Remove video reference from User
+    User.videos.pull(videoId);
+    await User.save();
 
     // Send response
     return res.status(200).json({ "status": "success", "message": "Video deleted successfully" });
