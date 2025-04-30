@@ -32,8 +32,7 @@ const ChannelPage = () => {
     }
     fetchUser();
     return ()=>{
-      // not removing channel.. so that we can have channel detail in message box
-      // dispatch(removeChannel());
+      dispatch(removeChannel());
     }
   }, [id, user]);
 
@@ -145,11 +144,6 @@ const ChannelPage = () => {
               Unsubscribe
             </button>
           )}
-          <Link to={`./message`}><button 
-          className="ml-5 rounded-md px-2 p-1 text-white text-xl bg-red-600"
-          >
-            Message
-          </button></Link>
         </div>
       </div>
 

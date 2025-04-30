@@ -15,7 +15,7 @@ const Videos = () => {
     const fetchVideos = async () => {
       if(Object.keys(Channel).length === 0) return;
       try {
-        const response = await fetch(`http://localhost:8000/api/v1/video/channel/${Channel}`);
+        const response = await fetch(`http://localhost:8000/api/v1/video/channel/${Channel._id}`);
         const data = await response.json();
 
         if (data.status === 'success') {

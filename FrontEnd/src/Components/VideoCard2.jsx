@@ -12,10 +12,6 @@ const VideoCard = ({video}) => {
             />
         <div className="p-4">
             <h2 className="text-lg font-bold mb-2">{video.title}</h2>
-            <div className="flex items-center space-x-2 mb-2">
-            </div>
-            <p className="text-sm text-gray-600">
-            </p>
         </div>
     </div></Link>
   )

@@ -3,7 +3,7 @@ const auth = require('../middlewares/auth.js');
 const upload = require("../middlewares/multer.middleware.js");
 const verify = require("../middlewares/verifyVideo.middleware.js");
 const path = require('path');
-const {uploadVideo,changeThumbnail,deleteVideoo,editVideo, getAllVideo, watchVideo, likeVideo, unlikeVideo, makeComment, getComments, getUserVideos} = require('../controllers/video.controller.js');
+const {uploadVideo,changeThumbnail,deleteVideoo,editVideo, getAllVideo, watchVideo, likeVideo, unlikeVideo, makeComment, getComments, getUserVideos, getVideo} = require('../controllers/video.controller.js');
 
 
 const router = express.Router();
@@ -27,11 +27,13 @@ router.route("/uploadvideo").post(
     uploadVideo
 );
 
-router.route("/changethumbnail/:id").patch(auth,verify,upload.single('thumbnail'),changeThumbnail);
+router.route("/changethumbnail/:id").patch(auth, verify ,upload.single('thumbnail'), changeThumbnail);
 
 router.route("/daletevideo/:id").delete(auth,verify,deleteVideoo);
 
 router.route("/edit/:id").patch(auth,verify,editVideo);
+
+router.route("/getvideo/:id").get(getVideo);
 
 router.route("/").get(getAllVideo);
 

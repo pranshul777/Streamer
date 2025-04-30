@@ -24,19 +24,19 @@ app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(cookieParser ());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// app.use(express.static(path.resolve(__dirname,'./public')));
+app.use(express.static(path.resolve(__dirname,'./public')));
 // temporary
 // app.get("/video",(req,res)=>{
 //     res.status(200).sendFile(path.resolve(__dirname,"./public/index2.html"));
 // })
 
 //temp : full-stack
-// app.use(express.static(path.resolve(__dirname, '../FrontEnd/dist')));
-// app.use(express.static(path.resolve(__dirname, '../FrontEnd/dist/assets')));
-// app.get('/', (req, res) => {
-//     res.status(200).sendFile(path.resolve(__dirname, '../FrontEnd/dist/index.html'));
-// });
+app.use(express.static(path.resolve(__dirname, '../FrontEnd/dist')));
+app.use(express.static(path.resolve(__dirname, '../FrontEnd/dist/assets')));
+app.use(express.static(path.resolve(__dirname, '../FrontEnd/src/assets')));
+app.get('/', (req, res) => {
+    res.status(200).sendFile(path.resolve(__dirname, '../FrontEnd/dist/index.html'));
+});
 
 //routes
 app.use('/api/v1/user',userRoute);

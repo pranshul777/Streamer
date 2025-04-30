@@ -61,6 +61,7 @@ async function uploadToCloud(folderPath, m3u8Path, folderId, next) {
         throw new Error('Failed to updated .m3u8');
     }
 }
+
 // run ffmpeg commands seperately and returns stored cloud stored manifest file
 // Wrap exec in a Promise to use async/await properly
 function runExec(ffmpegCommand, videoPath, hlsPath, outputPath, folderId, next) {
@@ -104,17 +105,19 @@ function generateMasterM3U8(url1, url2, url3) {
     return masterContent;
 }
 
-
-
 const uploadVideo = AsyncWrapper(async (req, res, next) => {
     const User = await user.findById(req.user);
     if (!User) {
         return next(customApiError(500, "User not found"));
     }
 
-    const { title, description } = req.body;
+    const { title, description, tag } = req.body;
     if (!title || !description) {
         return next(unprocessableContent());
+    }
+    let tags = [];
+    if(tag){
+        tags = tag.split(",");
     }
 
     if (!req.files?.thumbnail || !req.files?.video) {
@@ -223,6 +226,7 @@ const uploadVideo = AsyncWrapper(async (req, res, next) => {
         views : [],
         likedBy : [],
         comments : [],
+        tags
     });
 
     if (!videoDoc) {
@@ -258,14 +262,14 @@ const deleteVideoo = AsyncWrapper(async (req, res, next) => {
     const folder = await Video.folder;
 
     // Delete Complete Folder from Cloudinary
-    await deleteFolder(folder, next);
+    // await deleteFolder(folder, next);
 
-    // Delete the video document from the database
-    await video.findByIdAndDelete(videoId);
+    // // Delete the video document from the database
+    // await video.findByIdAndDelete(videoId);
 
-    // Remove video reference from User
-    User.videos.pull(videoId);
-    await User.save();
+    // // Remove video reference from User
+    // User.videos.pull(videoId);
+    // await User.save();
 
     // Send response
     return res.status(200).json({ "status": "success", "message": "Video deleted successfully" });
@@ -283,12 +287,13 @@ const changeThumbnail = AsyncWrapper(async (req,res,next)=>{
 
     // get that video's thumbnail
     const public_id = await Video.thumbnail.publicId;
+    const folderId = await Video.folder;
     
     // delete existing thumbnail
     await deleteImage(public_id);
 
     // upload new thumbnail
-    const { url: urlT, public_id: public_idT } = await imageUploader(req.file?.path, next);
+    const { url: urlT, public_id: public_idT } = await imageUploader(req.file?.path, next, folderId);
     if (!urlT) {
         return next(customApiError(500, "File URL couldn't be received"));
     }
@@ -301,6 +306,8 @@ const changeThumbnail = AsyncWrapper(async (req,res,next)=>{
 });
 
 const editVideo = AsyncWrapper(async (req,res,next)=>{
+    console.log("editing the video");
+    console.log(req);
     const {title,description}=req.body;
     const videoId = req.params.id;
 
@@ -317,7 +324,51 @@ const editVideo = AsyncWrapper(async (req,res,next)=>{
 });
 
 const getAllVideo = AsyncWrapper(async (req,res,next)=>{
-    const Videos = await video.find().select("_id title thumbnail ownerName ownerLogo createdAt owner");
+    console.log("getting all videos");
+    console.log(req.query);
+
+    let {search, limit, skip} = req.query;
+    let Videos;
+    if(search !== ''){
+        const searchArray = search.split(" ");
+        // console.log(searchArray);
+
+        const searchConditions = [];
+
+        // Create regex for each search term
+        searchArray.forEach((term) => {
+            const regex = new RegExp(term, 'i'); // Case-insensitive regex
+
+            // Match against individual fields
+            searchConditions.push(
+            { title: regex },
+            { description: regex },
+            { ownerName: regex },
+            { tags: { $elemMatch: { $regex: regex } } } // Match terms within the tags array
+            );
+        });
+
+        // Combine all conditions using $or
+        const query = { $or: searchConditions };
+
+        
+
+        // console.log(" resultant query : ");
+        // console.log(query);
+
+        // Fetch videos from the database
+        Videos = await video.find(query)
+        .select("_id title thumbnail ownerName ownerLogo createdAt owner")
+        .skip(skip)
+        .limit(limit);
+    }
+    else {
+        Videos = await video.find()
+        .select("_id title thumbnail ownerName ownerLogo createdAt owner")
+        .skip(skip)
+        .limit(limit);
+    }
+
     if(!Videos){
         return next(customApiError(500,"Videos can't be recieved"));
     }
@@ -325,6 +376,9 @@ const getAllVideo = AsyncWrapper(async (req,res,next)=>{
     if(Videos.length === 0){
         return res.status(200).json({"status":"success","message":"novideos"});
     }
+
+    console.log("Found Videos : ");
+    console.log(Videos);
 
     // const views = await Videos.countViews();
 
@@ -366,17 +420,39 @@ const watchVideo = AsyncWrapper(async (req, res, next) => {
     });
 });
 
-const getComments = AsyncWrapper(async (req,res,next)=>{
+const getVideo = AsyncWrapper(async (req, res, next) => {
     const id = req.params.id;
 
+    
+    if(!mongoose.Types.ObjectId.isValid(id)){
+        return next(customApiError(400,"video id isnot valid"));
+    }
+
+    const Video = await video.findById(id).select("title description thumbnail ");
+    
+    if (!Video) {
+        return next(customApiError(500, "Video can't be received"));
+    }
+
+    return res.status(200).json({
+        status: "success",
+        data: Video
+    });
+});
+
+const getComments = AsyncWrapper(async (req,res,next)=>{
+    const id = req.params.id;
+    const {limit, skip} = req.query;
+    console.log("Getting comments",limit, skip);
     if(!mongoose.Types.ObjectId.isValid(id)){
         return next(badRequest());
     }
 
-    const Comments = await comment.find({atVideo : id});
+    const Comments = await comment.find({atVideo : id}).skip(skip).limit(limit);
     if(!Comments){
         return next(customApiError(500,"Comments can't be recieved"));
     }
+    // console.log(Comments);
 
     return res.status(200).json({"status":"success","data":Comments});
 })
@@ -483,6 +559,7 @@ const makeComment = AsyncWrapper(async (req, res, next) => {4
 
 const getUserVideos = AsyncWrapper(async (req,res,next)=>{
     const { id } = req.params;
+    // console.log("Getting user's videos : ", id);
     
     if(!id){
         return next(badRequest());
@@ -492,8 +569,8 @@ const getUserVideos = AsyncWrapper(async (req,res,next)=>{
         return next(customApiError(400, "Invalid user ID"));
     }
     
-    const videos = await video.find({owner : id}).select("_id title thumbnail ownerName ownerLogo createdAt owner");
+    const videos = await video.find({owner : id}).select("_id title thumbnail ownerName ownerLogo createdAt updatedAt views");
     res.status(200).json({"status":"success","data":videos});
 })
 
-module.exports = {uploadVideo,deleteVideoo,changeThumbnail,editVideo,getAllVideo,watchVideo,likeVideo,unlikeVideo, makeComment, getComments, getUserVideos};
+module.exports = {getVideo, uploadVideo,deleteVideoo,changeThumbnail,editVideo,getAllVideo,watchVideo,likeVideo,unlikeVideo, makeComment, getComments, getUserVideos};

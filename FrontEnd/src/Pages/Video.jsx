@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import VideoPlayer from '../Components/VideoPlayer';
 
 const Video = () => {
   const user = useSelector((store) => store.user);
+  const navigate = useNavigate();
 
   const videoId = useParams().id;
   const [videoData, setVideoData] = useState(null);  // To hold video data from backend
@@ -14,6 +15,11 @@ const Video = () => {
   const [commentCount, setCommentCount] = useState(0);
   const [views, setViews] = useState(0);             // To manage view count
   const [liked, setLiked] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [skip, setSkip] = useState(0);
+  const observer = useRef();
+
 
   // Fetch video details and comments when the component mounts
   useEffect(() => {
@@ -22,8 +28,12 @@ const Video = () => {
         let api ;
         if (Object.keys(user).length === 0) api = `http://localhost:8000/api/v1/video/watchvideo/${videoId}`;
         else api = `http://localhost:8000/api/v1/video/watchvideo/${videoId}?user=${user?._id}`;
+        
         const videoResponse = await fetch(api);
         const videoJson = await videoResponse.json();
+
+        if(!videoResponse.ok || videoJson.status != "success") navigate("/");
+
         setVideoData(videoJson.data);
         setLikeCount(videoJson.Likes);      // Assuming likes are part of the video data
         setCommentCount(videoJson.Comments);
@@ -31,10 +41,8 @@ const Video = () => {
         
         const flag = videoJson?.data?.likedBy.includes(user?._id);
         setLiked(flag);
-
-        const commentResponse = await fetch(`http://localhost:8000/api/v1/video/getComments/${videoId}`);
-        const commentsJson = await commentResponse.json();
-        setComments(commentsJson.data);
+        
+        fetchComments();
       } catch (error) {
         console.error('Error fetching video data:', error);
       }
@@ -42,6 +50,74 @@ const Video = () => {
 
     fetchVideoData();
   }, [videoId,user]);
+
+
+  // Fetch comments with limit and skip
+  const fetchComments = async (limit = 10) => {
+    if (loading || !hasMore) return; // Prevent multiple calls
+    setLoading(true);
+    try {
+      // const skip = Number(window.sessionStorage.getItem('skip') || '0');
+      console.log("fetching more comments ", skip);
+      const response = await fetch(
+        `http://localhost:8000/api/v1/video/getComments/${videoId}?limit=${limit}&skip=${skip}`
+      );
+      const data = await response.json();
+
+      if (response.ok && data.status === 'success') {
+        if (data.data.length < limit) setHasMore(false); // No more comments // if comments fetched less than limit, it must means that comments are over now
+        setComments((prev) => [...prev, ...data.data]);
+        setSkip((prevSkip)=>prevSkip+limit);
+      }
+    } catch (error) {
+      console.error('Error fetching comments:', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Infinite scroll observer callback
+  const lastCommentRef = useCallback(
+    (node) => {
+      if (loading) return;
+      if (observer.current) observer.current.disconnect();
+
+      observer.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          fetchComments(); // Fetch more comments when the last one is visible
+        }
+      });
+
+      if (node) observer.current.observe(node);
+    },
+    [loading, hasMore]
+  );
+
+  // Rendered comments
+  const renderComments = () => {
+    return comments.map((comment, index) => {
+      if (index === comments.length - 1) {
+        return (
+          <div
+            key={comment._id}
+            className="bg-gray-200 p-3 mb-2 rounded-md shadow"
+            ref={lastCommentRef}
+          >
+            <div className="text-sm text-slate-700">{comment.ownername}</div>
+            <div className="text-lg">{comment?.content}</div>
+          </div>
+        );
+      } else {
+        return (
+          <div key={comment._id} className="bg-gray-200 p-3 mb-2 rounded-md shadow">
+            <div className="text-sm text-slate-700">{comment.ownername}</div>
+            <div className="text-lg">{comment?.content}</div>
+          </div>
+        );
+      }
+    });
+  };
+
 
   // Handle like button click
   const handleLike = async () => {
@@ -126,7 +202,7 @@ const Video = () => {
       const data = await response.json();
       if (data.status === "success") {
         alert(data.message);
-        setComments([...comments, newComment]);
+        setComments((prevComments)=>[...prevComments, newComment]);
         setNewComment('');
       }
     } catch (error) {
@@ -191,11 +267,10 @@ const Video = () => {
               <span className="text-gray-600">{views} Views</span> {/* Added view count */}
             </div>
 
-            {/* Comment Section */}
+            {/* Comments Section */}
             <div>
               <h2 className="text-lg font-semibold mb-4">{commentCount} Comments</h2>
-
-              {/* Add a Comment */}
+              {/* New Comment Form */}
               <form onSubmit={handleCommentSubmit} className="flex flex-col space-y-2 mb-5">
                 <textarea
                   className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -212,24 +287,9 @@ const Video = () => {
                 </button>
               </form>
 
-              {/* Existing Comments */}
-              <div className="mb-4">
-                {comments.length > 0 ? (
-                  comments.map((comment, index) => (
-                    <div key={comment._id} className='bg-gray-200 p-3 mb-2 rounded-md shadow'>
-                      <div className="text-sm text-slate-700">
-                        {comment.ownername}
-                      </div>
-                      <div className="text-lg">
-                        {comment?.content}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500">No comments yet.</p>
-                )}
-              </div>
-
+              {/* Rendered Comments */}
+              <div className="mb-4">{renderComments()}</div>
+              {loading && <p>Loading...</p>}
             </div>
           </>
         )}

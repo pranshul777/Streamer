@@ -3,6 +3,7 @@ import Header from './Components/Header.jsx';
 import Home from './Pages/Home.jsx';
 import { createBrowserRouter, Outlet, RouterProvider } from 'react-router-dom';
 import Error from './Pages/Error.jsx';
+import VideoEditPage from './Pages/VideoEdit.jsx';
 
 const Login = lazy(()=> import("./Pages/Login.jsx"));
 const Profile = lazy(()=> import('./Pages/Profile.jsx'));
@@ -13,8 +14,7 @@ const ChannelPage = lazy(()=> import('./Pages/Channel.jsx'));
 const Posts = lazy(()=> import('./Components/Posts.jsx'));
 const Videos = lazy(()=> import('./Components/Videos.jsx'));
 const Playlists = lazy(()=> import('./Components/Playlists.jsx'));
-const MessageBox = lazy(()=> import('./Pages/MessageBox.jsx'));
-const ChannelMessageBox = lazy(()=>import('./Pages/MessageBoxChannel.jsx'));
+const VideoAdminPage = lazy(()=> import('./Pages/VideoAdminPage.jsx'));
 
 
 function Layout() {
@@ -34,12 +34,20 @@ const router = createBrowserRouter([
         children: [
             {
                 path: "",
-                element: <Home />
+                element: <Home query={""} />
             },
             {
                 path: "profile",
                 element: <Suspense fallback={<div>Loading...</div>}><Profile /></Suspense>
-            },,
+            },
+            {
+                path : "videoadmin",
+                element : <Suspense fallback={<div>Loading...</div>}><VideoAdminPage /></Suspense>,
+            },
+            {
+                path : "videoedit/:id",
+                element : <Suspense fallback={<div>Loading...</div>}><VideoEditPage /></Suspense>,
+            },
             {
                 path : "uploadvideo",
                 element: <Suspense fallback={<div>Loading...</div>}><VideoUpload /></Suspense>
@@ -65,15 +73,7 @@ const router = createBrowserRouter([
                         element : <Suspense fallback={<div>Loading...</div>}><Playlists /></Suspense>,
                     }
                 ]
-            },
-            {
-                path : "channel/:id/message",
-                element : <Suspense fallback={<div>Loading...</div>}><MessageBox/></Suspense>,
-            },
-            {
-                path : "message/:id",
-                element : <Suspense fallback={<div>Loading...</div>}><ChannelMessageBox/></Suspense>,
-            },
+            }
         ]
     },
     {

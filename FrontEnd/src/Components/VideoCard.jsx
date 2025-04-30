@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { Link } from 'react-router-dom';
 
-const VideoCard = ({ video }) => {
+const VideoCard = forwardRef(({video}, ref) => { // forwardRef render functions accept exactly two parameters: props and ref
     const { _id : id, thumbnail, title, views, createdAt : uploadDate, ownerName : channelName,ownerLogo:  channelLogo, owner } = video;
     return (
-        <Link to={"/watch/"+id}><div className="w-72 p-3 bg-white shadow-lg rounded-lg">
+        <Link to={"/watch/"+id}><div ref={ref} className="w-72 p-3 bg-white shadow-lg rounded-lg">
             {/* Video Thumbnail */}
             <img
                 src={thumbnail.url}
@@ -30,6 +30,6 @@ const VideoCard = ({ video }) => {
             </div>
         </div></Link>
     );
-};
+});
 
 export default VideoCard;

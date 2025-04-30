@@ -84,7 +84,7 @@ const Profile = () => {
             Playlists
           </Link>
           <Link
-            to="/profile"
+            to="/videoadmin"
             className="w-full bg-blue-500 text-white py-2 px-4 rounded-md text-center"
           >
             Your Videos
