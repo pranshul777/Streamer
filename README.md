@@ -1,3 +1,35 @@
+# Streamer Web App
+
+A full-featured video streaming platform where users can upload, stream, and interact with video content in real time. Built using the MERN stack (MongoDB, Express.js, React, Node.js), the application supports on-demand streaming, user subscriptions, likes, comments, and more.
+
+## 🚀 Features
+
+- User authentication and profile management
+- Video Pages or Channel
+- Video upload with cloud storage integration
+- Real-time video streaming (on-demand)
+- Like, comment, and subscribe functionalities
+- Channel-based community post sharing
+- Playlist Creation
+- Backend API built with Express and MongoDB
+- Video processing with FFmpeg and file handling with Multer
+
+## 🛠 Tech Stack
+
+**Frontend**  
+- React  
+- Tailwind CSS  
+
+**Backend**  
+- Node.js  
+- Express.js  
+- MongoDB (Mongoose)  
+- Cloudinary (video storage)  
+- FFmpeg (video processing)  
+- Multer (file uploads)  
+
+**Other Tools**  
+- JWT (for authentication)  
 ## Prerequisites
 
 - Node.js and npm
